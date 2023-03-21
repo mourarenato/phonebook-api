@@ -1,0 +1,59 @@
+version: '3'
+services:
+  nginx:
+    image: nginx
+    container_name: nginx-phonebook-api
+    restart: always
+    ports:
+      - "80:80"
+    volumes:
+      - ./docker/nginx_conf:/etc/nginx/conf.d
+      - ./:/var/www/html
+    depends_on:
+      - php
+    networks:
+      services-phonebook:
+        ipv4_address: 10.10.0.22
+
+  php:
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+    container_name: php-phonebook-api
+    restart: always
+    tty: true
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./:/var/www/html
+      - /usr/bin/ssh:/usr/bin/ssh
+    environment:
+      - XDEBUG_CONFIG=remote_host=172.17.0.1
+      - PHP_IDE_CONFIG=serverName=Local
+    networks:
+      services-phonebook:
+        ipv4_address: 10.10.0.42
+
+  mysql:
+    image: mysql:5.7
+    container_name: mysql
+    restart: always
+    environment:
+      - MYSQL_DATABASE=phonebook_api_db
+      - MYSQL_USER=adm
+      - MYSQL_PASSWORD=123456
+      - MYSQL_ROOT_PASSWORD=password
+    ports:
+      - "3306:3306"
+    volumes:
+      - ./db:/var/lib/mysql
+    networks:
+      services-phonebook:
+        ipv4_address: 10.10.0.32
+
+networks:
+  services-phonebook:
+    ipam:
+      driver: default
+      config:
+        - subnet: 10.10.0.0/20
